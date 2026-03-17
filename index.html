@@ -1,1 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kleiner Hoops Pool 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0f1e38;
+    --navy3: #162542;
+    --gold: #f0b429;
+    --gold2: #e8a800;
+    --orange: #e8622a;
+    --white: #f5f2eb;
+    --gray: #8a9ab5;
+    --gray2: #4a5568;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --card: #111d33;
+    --border: rgba(240,180,41,0.15);
+  }
 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(240,180,41,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(232,98,42,0.05) 0%, transparent 50%);
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    background: rgba(10,22,40,0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .logo { display: flex; align-items: baseline; gap: 0.5rem; }
+  .logo-main { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 2px; color: var(--white); line-height: 1; }
+  .logo-year { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--gold); letter-spacing: 3px; }
+  .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .last-updated { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+
+  .btn {
+    border: none;
+    padding: 0.5rem 1.2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+  .btn-gold { background: var(--gold); color: var(--navy); }
+  .btn-gold:hover { background: var(--gold2); transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--gold); border: 1px solid rgba(240,180,41,0.4); }
+  .btn-outline:hover { background: rgba(240,180,41,0.1); }
+  .btn.loading { opacity: 0.6; cursor: not-allowed; }
+
+  .status-bar {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 100%);
+    padding: 0.4rem 2rem;
+    text-align: center;
+  }
+  .status-bar span { font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 500; color: var(--navy); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+  .section-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* TRASH TALK BOARD */
+  .trash-board {
+    background: var(--card);
+    border: 1px solid rgba(232,98,42,0.25);
+    margin-bottom: 2.5rem;
+    overflow: hidden;
+  }
+  .trash-header {
+    background: linear-gradient(135deg, rgba(232,98,42,0.15), rgba(240,180,41,0.08));
+    border-bottom: 1px solid rgba(232,98,42,0.2);
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .trash-header-left { display: flex; align-items: center; gap: 0.75rem; }
+  .trash-icon { font-size: 1.2rem; }
+  .trash-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: var(--orange);
+  }
+  .trash-subtitle { font-size: 0.72rem; color: var(--gray); letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+  .trash-toggle { font-size: 0.8rem; color: var(--gray); transition: transform 0.3s; }
+  .trash-toggle.open { transform: rotate(180deg); }
+
+  .trash-body { padding: 1.2rem; display: none; }
+  .trash-body.open { display: block; }
+
+  .trash-entries { display: flex; flex-direction: column; gap: 0.75rem; }
+  .trash-entry {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    background: rgba(255,255,255,0.03);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 2px 2px 0;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  .trash-entry.good { border-left-color: var(--green); }
+  .trash-entry.neutral { border-left-color: var(--gray2); }
+  .trash-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--orange), var(--gold));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    color: var(--navy);
+    flex-shrink: 0;
+  }
+  .trash-entry.good .trash-avatar { background: linear-gradient(135deg, var(--green), #27ae60); }
+  .trash-entry.neutral .trash-avatar { background: linear-gradient(135deg, var(--gray2), #5a6a80); }
+  .trash-name { font-weight: 700; font-size: 0.8rem; color: var(--gold); margin-bottom: 0.2rem; }
+  .trash-entry.good .trash-name { color: var(--green); }
+  .trash-text { font-size: 0.85rem; color: var(--white); line-height: 1.45; }
+  .trash-score-context { font-size: 0.72rem; color: var(--gray); margin-top: 0.3rem; font-family: 'DM Mono', monospace; }
+
+  .trash-footer {
+    padding: 0.75rem 1.2rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .trash-round-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; }
+  .trash-loading { font-size: 0.8rem; color: var(--gray); font-family: 'DM Mono', monospace; display: none; }
+  .trash-loading.show { display: block; }
+  .trash-placeholder { padding: 1.5rem; text-align: center; color: var(--gray); font-size: 0.85rem; font-style: italic; }
+
+  /* LEADERBOARD */
+  .leaderboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+  .player-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  }
+  .player-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(240,180,41,0.1); }
+  .player-card.rank-1 { border-color: rgba(240,180,41,0.6); }
+  .player-card.rank-2 { border-color: rgba(192,192,192,0.4); }
+  .player-card.rank-3 { border-color: rgba(176,141,87,0.4); }
+  .card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+  .player-card.rank-1 .card-accent { background: linear-gradient(90deg, var(--gold), var(--orange)); }
+  .player-card.rank-2 .card-accent { background: linear-gradient(90deg, #c0c0c0, #e8e8e8); }
+  .player-card.rank-3 .card-accent { background: linear-gradient(90deg, #b08d57, #d4a96a); }
+  .card-header { padding: 1rem 1.2rem 0.6rem; display: flex; align-items: flex-start; justify-content: space-between; }
+  .rank-badge { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; line-height: 1; color: rgba(255,255,255,0.08); position: absolute; right: 1rem; top: 0.5rem; }
+  .player-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; line-height: 1; color: var(--white); }
+  .player-score { text-align: right; }
+  .score-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; line-height: 1; color: var(--gold); }
+  .score-label { font-size: 0.65rem; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; display: block; }
+  .card-teams { padding: 0.5rem 1.2rem 1rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .team-chip { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px; padding: 0.2rem 0.5rem; border-radius: 2px; text-transform: uppercase; transition: all 0.2s; }
+  .team-chip.alive { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
+  .team-chip.eliminated { background: rgba(255,255,255,0.04); color: var(--gray2); border: 1px solid rgba(255,255,255,0.06); text-decoration: line-through; }
+  .team-chip.champion { background: linear-gradient(135deg, var(--gold), var(--orange)); color: var(--navy); border: none; font-weight: 700; }
+  .team-chip.wins { background: rgba(240,180,41,0.15); color: var(--gold); border: 1px solid rgba(240,180,41,0.3); }
+
+  /* SCORE TABLE */
+  .score-table-wrap { background: var(--card); border: 1px solid var(--border); margin-bottom: 3rem; overflow-x: auto; }
+  .score-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .score-table th { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--gray); padding: 0.8rem 1rem; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .score-table th:first-child { text-align: left; padding-left: 1.2rem; }
+  .score-table td { padding: 0.7rem 1rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+  .score-table td:first-child { text-align: left; padding-left: 1.2rem; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--white); }
+  .score-table tr:last-child td { border-bottom: none; }
+  .score-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .score-table .total-col { font-weight: 700; color: var(--gold); font-size: 0.9rem; }
+  .score-table .round-score { color: var(--gray); }
+  .score-table .round-score.has-pts { color: var(--white); }
+  .score-table tr.leader td:first-child { color: var(--gold); }
+
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(10,22,40,0.85); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border: 3px solid rgba(240,180,41,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'DM Mono', monospace; font-size: 0.8rem; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; }
+
+  .error-banner { display: none; background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; color: #e74c3c; font-size: 0.85rem; }
+  .error-banner.show { display: block; }
+
+  footer { text-align: center; padding: 2rem; color: var(--gray2); font-size: 0.75rem; letter-spacing: 1px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; }
+
+  @media (max-width: 640px) {
+    main { padding: 1rem; }
+    .leaderboard { grid-template-columns: 1fr; }
+    .header-inner { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Fetching Scores...</div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-main">Kleiner Hoops Pool</span>
+      <span class="logo-year">2026</span>
+    </div>
+    <div class="header-right">
+      <span class="last-updated" id="lastUpdated">Not yet updated</span>
+      <button class="btn btn-outline" id="trashBtn" onclick="generateTrashTalk()">🔥 Roast the Pool</button>
+      <button class="btn btn-gold" id="refreshBtn" onclick="fetchScores()">↻ Refresh Scores</button>
+    </div>
+  </div>
+</header>
+
+<div class="status-bar">
+  <span id="statusText">🏀 2026 NCAA Tournament — Click Refresh to load live scores</span>
+</div>
+
+<main>
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- TRASH TALK BOARD -->
+  <div class="section-label">Bulletin Board</div>
+  <div class="trash-board" id="trashBoard">
+    <div class="trash-header" onclick="toggleTrash()">
+      <div class="trash-header-left">
+        <span class="trash-icon">🔥</span>
+        <div>
+          <div class="trash-title">The Burn Unit</div>
+          <div class="trash-subtitle">Post-round commentary • Medium roast • Results may sting</div>
+        </div>
+      </div>
+      <span class="trash-toggle" id="trashToggle">▼</span>
+    </div>
+    <div class="trash-body" id="trashBody">
+      <div class="trash-entries" id="trashEntries">
+        <div class="trash-placeholder">No roasts yet. Refresh scores first, then hit "Roast the Pool" to generate commentary.</div>
+      </div>
+      <div class="trash-footer">
+        <span class="trash-round-label" id="trashRoundLabel">—</span>
+        <span class="trash-loading" id="trashLoading">🤔 Cooking up something savage...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="section-label">Standings</div>
+  <div class="leaderboard" id="leaderboard"></div>
+
+  <!-- SCORE TABLE -->
+  <div class="section-label">Score Breakdown</div>
+  <div class="score-table-wrap">
+    <table class="score-table" id="scoreTable">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>R64</th><th>R32</th><th>S16</th><th>E8</th><th>F4</th><th>Champ</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="scoreTableBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<footer>Kleiner Hoops Pool 2026 &nbsp;·&nbsp; Auto-refreshes every 5 min &nbsp;·&nbsp; Built with Claude</footer>
+
+<script>
+// ============================================================
+// ROSTERS
+// ============================================================
+const POOL = {
+  "Kleiner":   ["Arizona","Alabama","Vanderbilt","Georgia","South Florida","Santa Clara","Cal Baptist","Kennesaw State"],
+  "Kiwi":      ["Iowa State","Virginia","Tennessee","Louisville","TCU","Texas A&M","Penn","LIU"],
+  "Jones":     ["Florida","St. John's","North Carolina","Villanova","Missouri","North Dakota State","UMBC","Lehigh"],
+  "Faulhaber": ["UConn","Gonzaga","Nebraska","VCU","Miami OH","Northern Iowa","Hofstra","Idaho"],
+  "Lauer":     ["Houston","Kansas","Texas Tech","UCLA","Utah State","High Point","Queens","Tennessee State"],
+  "Goering":   ["Michigan","Michigan State","Miami FL","St. Mary's","UCF","Clemson","McNeese","Siena"],
+  "Hattemer":  ["Duke","Wisconsin","Arkansas","Iowa","Saint Louis","NC State","Wright State","Furman"],
+  "Greek":     ["Purdue","Illinois","BYU","Kentucky","Ohio State","Akron","Troy","Hawaii"]
+};
+
+const ALIASES = {
+  "st. john's":"St. John's","saint john's":"St. John's","st johns":"St. John's",
+  "north carolina":"North Carolina","unc":"North Carolina","tar heels":"North Carolina",
+  "miami oh":"Miami OH","miami (oh)":"Miami OH","miami ohio":"Miami OH",
+  "miami fl":"Miami FL","miami (fl)":"Miami FL","miami florida":"Miami FL",
+  "uconn":"UConn","connecticut":"UConn",
+  "michigan st":"Michigan State","msu":"Michigan State",
+  "iowa st":"Iowa State",
+  "texas a&m":"Texas A&M","tex a&m":"Texas A&M",
+  "utah st":"Utah State",
+  "nc state":"NC State","north carolina state":"NC State",
+  "st. mary's":"St. Mary's","saint mary's":"St. Mary's",
+  "north dakota st":"North Dakota State","nd state":"North Dakota State",
+  "cal baptist":"Cal Baptist","california baptist":"Cal Baptist",
+  "kennesaw st":"Kennesaw State",
+  "tennessee state":"Tennessee State","tn state":"Tennessee State","tenn state":"Tennessee State",
+  "high point":"High Point",
+  "umbc":"UMBC",
+  "saint louis":"Saint Louis","slu":"Saint Louis",
+  "wright st":"Wright State",
+  "texas tech":"Texas Tech",
+  "northern iowa":"Northern Iowa",
+  "south florida":"South Florida","usf":"South Florida",
+  "vcu":"VCU","virginia commonwealth":"VCU",
+  "ucf":"UCF","central florida":"UCF",
+  "liu":"LIU","long island":"LIU",
+};
+
+function normalizeName(name) {
+  if (!name) return "";
+  const lower = name.toLowerCase().trim();
+  return ALIASES[lower] || name.trim();
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let gameResults = {};
+let lastFetchTime = null;
+let currentRoundLabel = "Pre-Tournament";
+let trashTalkOpen = false;
+
+function initState() {
+  gameResults = {};
+  for (const teams of Object.values(POOL)) {
+    for (const team of teams) {
+      gameResults[team] = { wins: 0, eliminated: false, isChampion: false, roundWins: [0,0,0,0,0,0] };
+    }
+  }
+}
+
+// ============================================================
+// SCORE FETCH
+// ============================================================
+async function fetchScores() {
+  const btn = document.getElementById('refreshBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  const errorBanner = document.getElementById('errorBanner');
+  document.getElementById('loadingText').textContent = 'Fetching Scores...';
+
+  btn.classList.add('loading');
+  btn.textContent = '↻ Updating...';
+  overlay.classList.add('show');
+  errorBanner.classList.remove('show');
+
+  try {
+    const teamList = Object.values(POOL).flat().join(', ');
+    const prompt = `You are a live NCAA tournament score tracker for the 2026 March Madness tournament. Today is ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}.
+
+Search for the latest 2026 NCAA Men's Basketball Tournament results and return ONLY a JSON object in this exact format, no markdown, no explanation:
+{
+  "updated": "brief description of what round we are in",
+  "status": "one sentence tournament status",
+  "teams": {
+    "TeamName": { "wins": 0, "eliminated": true, "isChampion": false },
+    ...
+  }
+}
+
+Track these 64 teams: ${teamList}
+
+Rules:
+- wins = total tournament wins (0-6). Champion has 6, runner-up has 5.
+- eliminated = true if they have lost any game
+- isChampion = true only for the national champion
+- Teams not yet played: wins=0, eliminated=false
+- Use the exact team name strings I provided as keys`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    let jsonText = "";
+    for (const block of (data.content || [])) {
+      if (block.type === "text") jsonText += block.text;
+    }
+    jsonText = jsonText.replace(/```json|```/g, '').trim();
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON in response");
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    initState();
+    for (const [rawName, d] of Object.entries(parsed.teams || {})) {
+      const normalized = normalizeName(rawName);
+      for (const team of Object.keys(gameResults)) {
+        if (team.toLowerCase() === normalized.toLowerCase() || team.toLowerCase() === rawName.toLowerCase()) {
+          gameResults[team] = {
+            wins: d.wins || 0,
+            eliminated: d.eliminated || false,
+            isChampion: d.isChampion || false,
+            roundWins: estimateRoundWins(d.wins || 0, d.isChampion || false)
+          };
+          break;
+        }
+      }
+    }
+
+    currentRoundLabel = parsed.updated || "In Progress";
+    lastFetchTime = new Date();
+    document.getElementById('lastUpdated').textContent = 'Updated ' + lastFetchTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('statusText').textContent = '🏀 ' + (parsed.status || '2026 NCAA Tournament Live');
+    renderAll();
+
+  } catch(err) {
+    console.error(err);
+    const eb = document.getElementById('errorBanner');
+    eb.textContent = '⚠️ Could not fetch live scores: ' + err.message;
+    eb.classList.add('show');
+    if (Object.keys(gameResults).length === 0) initState();
+    renderAll();
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = '↻ Refresh Scores';
+    overlay.classList.remove('show');
+  }
+}
+
+function estimateRoundWins(totalWins, isChampion) {
+  const rounds = [0,0,0,0,0,0];
+  for (let i = 0; i < Math.min(totalWins, 6); i++) rounds[i] = 1;
+  if (isChampion) rounds[5] = 2;
+  return rounds;
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+function calcPlayerScore(player) {
+  const teams = POOL[player];
+  let total = 0;
+  let roundTotals = [0,0,0,0,0,0];
+  for (const team of teams) {
+    const r = gameResults[team];
+    if (!r) continue;
+    const pts = r.isChampion ? r.wins + 1 : r.wins;
+    total += pts;
+    const rw = r.roundWins || estimateRoundWins(r.wins, r.isChampion);
+    for (let i = 0; i < 6; i++) roundTotals[i] += rw[i];
+  }
+  return { total, roundTotals };
+}
+
+function getSortedScores() {
+  return Object.keys(POOL).map(p => ({
+    player: p,
+    ...calcPlayerScore(p)
+  })).sort((a,b) => b.total - a.total);
+}
+
+// ============================================================
+// TRASH TALK GENERATOR
+// ============================================================
+async function generateTrashTalk() {
+  const btn = document.getElementById('trashBtn');
+  const loadingEl = document.getElementById('trashLoading');
+  const entriesEl = document.getElementById('trashEntries');
+  const overlay = document.getElementById('loadingOverlay');
+  document.getElementById('loadingText').textContent = 'Cooking up roasts...';
+
+  // Open the trash board if closed
+  if (!trashTalkOpen) toggleTrash();
+
+  btn.classList.add('loading');
+  btn.textContent = '🔥 Roasting...';
+  loadingEl.classList.add('show');
+  overlay.classList.add('show');
+
+  try {
+    const scores = getSortedScores();
+    const leader = scores[0];
+    const lastPlace = scores[scores.length - 1];
+
+    // Build context for the AI
+    const scoreContext = scores.map((s, i) => {
+      const teams = POOL[s.player];
+      const aliveTeams = teams.filter(t => gameResults[t] && !gameResults[t].eliminated);
+      const eliminatedTeams = teams.filter(t => gameResults[t] && gameResults[t].eliminated);
+      const champion = teams.find(t => gameResults[t] && gameResults[t].isChampion);
+      return `${i+1}. ${s.player}: ${s.total} pts | Alive: ${aliveTeams.join(', ') || 'NONE'} | Eliminated: ${eliminatedTeams.join(', ') || 'none yet'} | Champion: ${champion || 'none'}`;
+    }).join('\n');
+
+    const prompt = `You are the trash talk commissioner for "Kleiner Hoops Pool 2026," a March Madness draft pool among 8 friends. The current tournament stage is: ${currentRoundLabel}.
+
+Here are the current standings and each player's team status:
+${scoreContext}
+
+Generate a short, funny, medium-roast bulletin board post for EACH of the 8 players. Rules:
+- Leader gets a humble brag comment or light warning not to get too comfortable
+- Players with zero alive teams get the harshest (but still friendly) roast
+- Middle of the pack gets observation-based commentary about their teams
+- Keep each comment to 1-2 sentences max
+- Reference specific teams by name where possible for authenticity
+- Tone: locker room banter, not mean-spirited. Think ESPN First Take, not a personal attack
+- If it's early and scores are all zero, make jokes about pre-tournament hype
+
+Return ONLY a JSON array, no markdown, no explanation:
+[
+  { "player": "PlayerName", "comment": "...", "tone": "good|neutral|bad" },
+  ...
+]
+tone = "good" for leader/top half, "neutral" for middle, "bad" for bottom half / eliminated`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    let jsonText = "";
+    for (const block of (data.content || [])) {
+      if (block.type === "text") jsonText += block.text;
+    }
+    jsonText = jsonText.replace(/```json|```/g, '').trim();
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("No JSON array in trash talk response");
+    const roasts = JSON.parse(jsonMatch[0]);
+
+    // Render the trash talk entries
+    entriesEl.innerHTML = '';
+    for (const roast of roasts) {
+      const playerScore = scores.find(s => s.player === roast.player);
+      const pts = playerScore ? playerScore.total : 0;
+      const rank = scores.findIndex(s => s.player === roast.player) + 1;
+      const initial = roast.player.charAt(0).toUpperCase();
+
+      const entry = document.createElement('div');
+      entry.className = `trash-entry ${roast.tone || 'neutral'}`;
+      entry.innerHTML = `
+        <div class="trash-avatar">${initial}</div>
+        <div>
+          <div class="trash-name">${roast.player}</div>
+          <div class="trash-text">${roast.comment}</div>
+          <div class="trash-score-context">Rank #${rank} · ${pts} pts · ${currentRoundLabel}</div>
+        </div>
+      `;
+      entriesEl.appendChild(entry);
+    }
+
+    document.getElementById('trashRoundLabel').textContent = 'Generated after: ' + currentRoundLabel;
+
+  } catch(err) {
+    console.error(err);
+    entriesEl.innerHTML = `<div class="trash-placeholder">Couldn't generate roasts: ${err.message}. Try again after refreshing scores.</div>`;
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = '🔥 Roast the Pool';
+    loadingEl.classList.remove('show');
+    overlay.classList.remove('show');
+  }
+}
+
+function toggleTrash() {
+  trashTalkOpen = !trashTalkOpen;
+  document.getElementById('trashBody').classList.toggle('open', trashTalkOpen);
+  document.getElementById('trashToggle').classList.toggle('open', trashTalkOpen);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderAll() {
+  const scores = getSortedScores();
+  renderLeaderboard(scores);
+  renderScoreTable(scores);
+}
+
+function renderLeaderboard(scores) {
+  const el = document.getElementById('leaderboard');
+  el.innerHTML = '';
+  scores.forEach((s, idx) => {
+    const rank = idx + 1;
+    const teams = POOL[s.player];
+    const card = document.createElement('div');
+    card.className = `player-card rank-${rank}`;
+    const chipsHtml = teams.map(team => {
+      const r = gameResults[team] || { wins:0, eliminated:false, isChampion:false };
+      let cls = 'alive', label = team;
+      if (r.isChampion) { cls = 'champion'; label = '🏆 ' + team; }
+      else if (r.eliminated) cls = 'eliminated';
+      else if (r.wins > 0) cls = 'wins';
+      return `<span class="team-chip ${cls}">${label}${r.wins > 0 && !r.isChampion ? ' (' + r.wins + ')' : ''}</span>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="card-accent"></div>
+      <div class="rank-badge">${rank}</div>
+      <div class="card-header">
+        <div><div class="player-name">${s.player}</div></div>
+        <div class="player-score">
+          <span class="score-num">${s.total}</span>
+          <span class="score-label">pts</span>
+        </div>
+      </div>
+      <div class="card-teams">${chipsHtml}</div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+function renderScoreTable(scores) {
+  const tbody = document.getElementById('scoreTableBody');
+  tbody.innerHTML = '';
+  scores.forEach((s, idx) => {
+    const tr = document.createElement('tr');
+    if (idx === 0) tr.classList.add('leader');
+    const roundCells = s.roundTotals.map(v =>
+      `<td class="round-score ${v > 0 ? 'has-pts' : ''}">${v || '—'}</td>`
+    ).join('');
+    tr.innerHTML = `<td>${idx+1}. ${s.player}</td>${roundCells}<td class="total-col">${s.total}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initState();
+renderAll();
+setInterval(fetchScores, 5 * 60 * 1000);
+</script>
+</body>
+</html>
