@@ -468,7 +468,7 @@ Rules:
             wins: d.wins || 0,
             eliminated: d.eliminated || false,
             isChampion: d.isChampion || false,
-            roundWins: estimateRoundWins(d.wins || 0, d.isChampion || false)
+            roundWins: estimateRoundWins(d.wins || 0, d.isChampion || false, FIRST_FOUR_WINNERS.includes(team))
           };
           break;
         }
@@ -528,7 +528,7 @@ function calcPlayerScore(player) {
     const scorableWins = firstFour ? Math.max(0, r.wins - 1) : r.wins;
     const pts = r.isChampion ? scorableWins + 1 : scorableWins;
     total += pts;
-    const rw = r.roundWins || estimateRoundWins(r.wins, r.isChampion, firstFour);
+    const rw = estimateRoundWins(r.wins, r.isChampion, firstFour);
     for (let i = 0; i < 6; i++) roundTotals[i] += rw[i];
   }
   return { total, roundTotals };
