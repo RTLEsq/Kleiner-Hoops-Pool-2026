@@ -281,17 +281,9 @@
       <span class="trash-toggle" id="previewToggle">▼</span>
     </div>
     <div class="trash-body open" id="previewBody">
-      <div class="trash-entries" id="previewEntries">
-        <div class="trash-placeholder" id="previewPlaceholder">
-          <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:0.5rem 0;">
-            <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-            <span>The commissioner is sizing everyone up...</span>
-          </div>
-        </div>
-      </div>
+      <div class="trash-entries" id="previewEntries"></div>
       <div class="trash-footer">
         <span class="trash-round-label">Pre-Tournament Preview • 2026 Kleiner Hoops Pool</span>
-        <button class="btn btn-outline" style="font-size:0.7rem;padding:0.3rem 0.8rem;" onclick="generatePreviewRoast()">↻ Regenerate</button>
       </div>
     </div>
   </div>
@@ -718,8 +710,59 @@ function renderScoreTable(scores) {
 }
 
 // ============================================================
-// PRE-TOURNAMENT PREVIEW ROAST
+// PRE-TOURNAMENT PREVIEW ROAST — HARDCODED (static, no API call needed)
 // ============================================================
+const PREVIEW_ROASTS = [
+  {
+    "player": "Lauer",
+    "comment": "Give the man his flowers — he drafted Houston with a home Elite Eight, locked up a healthy Darryn Peterson at Kansas, and then built the app you're currently using to watch him win. Yes, Texas Tech lost Toppin and the rest of his roster is basically a collection of participation trophies, but when your top two teams are this good, you don't need eight. The Commissioner's pick to win it all.",
+    "tone": "good",
+    "rank_prediction": "1st"
+  },
+  {
+    "player": "Hattemer",
+    "comment": "Duke is the number one overall seed, the betting favorite, and the best team in the country — and Hattemer has them. That alone makes him dangerous. Wisconsin and Arkansas give him a solid floor, and if Cameron Boozer goes full Cameron Boozer, this bracket fills up fast. Only real risk: everyone sees this coming, which means no one will feel bad for him if Duke loses in the second round.",
+    "tone": "good",
+    "rank_prediction": "2nd"
+  },
+  {
+    "player": "Goering",
+    "comment": "Michigan is the oddsmakers' slight betting favorite and Goering has them plus Michigan State, which means he's got two teams that could legitimately make the Final Four out of the same region. The bad news: they can't both get there. The good news: Miami FL and St. Mary's are quietly solid depth picks. This roster has the highest floor in the pool — nobody's going home empty.",
+    "tone": "good",
+    "rank_prediction": "3rd"
+  },
+  {
+    "player": "Jones",
+    "comment": "Florida is the defending champion and Jones drafted them — respect. The problem is UNC just lost Caleb Wilson to a season-ending thumb injury, and Wilson was averaging nearly 20 and 10. The Tar Heels are 0-2 without him and now face VCU in round one. Jones has the best name-brand roster in the pool but name brands have expiration dates, and a couple of his just expired.",
+    "tone": "neutral",
+    "rank_prediction": "4th"
+  },
+  {
+    "player": "Kleiner",
+    "comment": "Arizona is a legitimate title contender, Vanderbilt is the hottest team in the SEC after torching Florida by 17, and then Alabama's Aden Holloway got arrested three days before the tournament. Three days. Kleiner went from a decent roster to a cautionary tale about reading the injury report — and the arrest report. The good news: Santa Clara went 26-8 and someone in this pool is getting surprised by them.",
+    "tone": "neutral",
+    "rank_prediction": "5th"
+  },
+  {
+    "player": "Kiwi",
+    "comment": "Iowa State has the cleanest path of any two-seed in the tournament and Virginia is a quietly elite 29-5 team that nobody is talking about — Kiwi may have accidentally built the most underrated roster in the pool. The ceiling isn't flashy but the floor is real. Tennessee, Louisville and TCU give him multiple teams capable of winning a game or two. This is the bracket equivalent of a steady 401k: boring, reliable, and you'll be glad you have it.",
+    "tone": "neutral",
+    "rank_prediction": "6th"
+  },
+  {
+    "player": "Greek",
+    "comment": "Purdue just won the Big Ten Tournament over Michigan and entered March on the hottest streak in the conference — Greek may have stolen the best value pick of the draft. Illinois and BYU give him real depth, and Akron is 29-5 with the seventh-best offense in the country. The concern is the back half: Kentucky is down, Ohio State is a bubble team, and Hawaii is basically a vacation. But if Purdue goes on a run, Greek is the dark horse nobody is watching.",
+    "tone": "neutral",
+    "rank_prediction": "7th"
+  },
+  {
+    "player": "Faulhaber",
+    "comment": "UConn is a legitimate Final Four threat and Gonzaga is a near-automatic Sweet 16 — except Braden Huff hasn't played since January with a knee injury, which turns Gonzaga from a Sweet 16 lock into a genuine question mark. Nebraska is looking for its first NCAA Tournament win in program history, VCU is a scrappy 11-seed, and Miami OH just clawed through the First Four. This bracket has character. Whether it has points is another question entirely.",
+    "tone": "bad",
+    "rank_prediction": "8th"
+  }
+];
+
 let previewOpen = true;
 
 function togglePreview() {
@@ -728,115 +771,46 @@ function togglePreview() {
   document.getElementById('previewToggle').classList.toggle('open', previewOpen);
 }
 
-async function generatePreviewRoast() {
+function generatePreviewRoast() {
   const entriesEl = document.getElementById('previewEntries');
-  const placeholder = document.getElementById('previewPlaceholder');
+  entriesEl.innerHTML = '';
 
-  entriesEl.innerHTML = `<div class="trash-placeholder" id="previewPlaceholder">
-    <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:0.5rem 0;">
-      <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-      <span>The commissioner is sizing everyone up...</span>
-    </div>
-  </div>`;
-
-  try {
-    const rosterSummary = Object.entries(POOL).map(([player, teams]) => {
-      return `${player}: ${teams.join(', ')}`;
-    }).join('\n');
-
-    const prompt = `You are the trash talk commissioner for the "Kleiner Hoops Pool 2026," an NCAA March Madness draft pool among 8 friends. You are generating the OFFICIAL PRE-TOURNAMENT PREVIEW — opening night roasts before a single game has been played.
-
-Here are the 8 players and their draft picks:
-${rosterSummary}
-
-Key facts to work into the roasts where relevant:
-- Houston is playing the Elite Eight essentially at home in Houston (huge advantage)
-- Duke is the #1 overall seed and the betting favorite
-- Michigan is the oddsmakers' slight favorite despite being #3 overall seed
-- Alabama's star player Aden Holloway was just arrested and suspended — bad news for anyone who drafted Alabama
-- Gonzaga's Braden Huff has been out since January with a knee injury — Gonzaga owners beware
-- UNC lost star Caleb Wilson to a season-ending thumb injury — bad for anyone who drafted them
-- Texas Tech lost JT Toppin (their best player) to a season-ending ACL — bad news for Texas Tech owners
-- Vanderbilt just demolished Florida by 17 in the SEC tourney — they're surging
-- Akron is a legitimate Cinderella with a 29-5 record and the best mid-major offense in the country
-- Lauer has Houston and Kansas (Darryn Peterson is healthy and playing his best ball) — actually a sleeper pick
-- Rick (Lauer) built this app and the other guys are probably skeptical it works — work that in somewhere
-
-Write a personalized 2-3 sentence pre-tournament preview roast for each of the 8 players. Rules:
-- Medium roast — locker room banter, not mean-spirited
-- Reference their specific teams by name
-- Mix predictions, trash talk, and backhanded compliments
-- Vary the tone — some get hyped up, some get taken down a peg
-- Make it feel like genuine sports commentary, not generic filler
-- Be clever and specific, not generic
-
-Return ONLY a JSON array, no markdown:
-[
-  { "player": "PlayerName", "comment": "...", "tone": "good|neutral|bad", "rank_prediction": "1st|2nd|3rd|middle|bottom" },
-  ...
-]`;
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    let jsonText = "";
-    for (const block of (data.content || [])) {
-      if (block.type === "text") jsonText += block.text;
-    }
-    jsonText = jsonText.replace(/```json|```/g, '').trim();
-    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("No JSON array found");
-    const roasts = JSON.parse(jsonMatch[0]);
-
-    entriesEl.innerHTML = '';
-
-    // Add a commissioner header entry
-    const header = document.createElement('div');
-    header.style.cssText = 'padding: 0.5rem 0 0.75rem; border-bottom: 1px solid rgba(240,180,41,0.1); margin-bottom: 0.75rem;';
-    header.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;">
+  // Commissioner header
+  const header = document.createElement('div');
+  header.style.cssText = 'padding: 0.5rem 0 0.75rem; border-bottom: 1px solid rgba(240,180,41,0.1); margin-bottom: 0.75rem;';
+  header.innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;">
       🏀 2026 Kleiner Hoops Pool — Official Pre-Tournament Preview
     </div>
     <div style="font-size:0.8rem;color:var(--gray);margin-top:0.3rem;">
       The bracket is set. The picks are locked. Here's how it's going to go down.
     </div>`;
-    entriesEl.appendChild(header);
+  entriesEl.appendChild(header);
 
-    for (const roast of roasts) {
-      const initial = roast.player.charAt(0).toUpperCase();
-      const rankColors = {
-        '1st': 'var(--gold)', '2nd': '#c0c0c0', '3rd': '#b08d57',
-        'middle': 'var(--gray)', 'bottom': 'var(--red)'
-      };
-      const rankColor = rankColors[roast.rank_prediction] || 'var(--gray)';
+  const rankColors = {
+    '1st': 'var(--gold)', '2nd': '#c0c0c0', '3rd': '#b08d57',
+    '4th': 'var(--white)', '5th': 'var(--gray)', '6th': 'var(--gray)',
+    '7th': 'var(--gray2)', '8th': 'var(--red)'
+  };
 
-      const entry = document.createElement('div');
-      entry.className = `trash-entry ${roast.tone || 'neutral'}`;
-      entry.innerHTML = `
-        <div class="trash-avatar">${initial}</div>
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem;">
-            <div class="trash-name">${roast.player}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:${rankColor};letter-spacing:1px;text-transform:uppercase;">
-              Predicted: ${roast.rank_prediction}
-            </div>
+  for (const roast of PREVIEW_ROASTS) {
+    const initial = roast.player.charAt(0).toUpperCase();
+    const rankColor = rankColors[roast.rank_prediction] || 'var(--gray)';
+    const entry = document.createElement('div');
+    entry.className = `trash-entry ${roast.tone || 'neutral'}`;
+    entry.innerHTML = `
+      <div class="trash-avatar">${initial}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem;flex-wrap:wrap;">
+          <div class="trash-name">${roast.player}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:${rankColor};letter-spacing:1px;text-transform:uppercase;">
+            Predicted: ${roast.rank_prediction}
           </div>
-          <div class="trash-text">${roast.comment}</div>
         </div>
-      `;
-      entriesEl.appendChild(entry);
-    }
-
-  } catch(err) {
-    console.error(err);
-    entriesEl.innerHTML = `<div class="trash-placeholder">Preview roast failed to load: ${err.message}. Try the Regenerate button.</div>`;
+        <div class="trash-text">${roast.comment}</div>
+      </div>
+    `;
+    entriesEl.appendChild(entry);
   }
 }
 
