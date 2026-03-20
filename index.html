@@ -614,49 +614,33 @@ async function generateTrashTalk() {
     const leader = scores[0];
     const lastPlace = scores[scores.length - 1];
 
-    // Build context for the AI
-    const scoreContext = scores.map((s, i) => {
+    // Build compact scores string to pass as URL parameter
+    const scoresParam = scores.map((s, i) => {
       const teams = POOL[s.player];
-      const aliveTeams = teams.filter(t => gameResults[t] && !gameResults[t].eliminated);
-      const eliminatedTeams = teams.filter(t => gameResults[t] && gameResults[t].eliminated);
-      const champion = teams.find(t => gameResults[t] && gameResults[t].isChampion);
-      return `${i+1}. ${s.player}: ${s.total} pts | Alive: ${aliveTeams.join(', ') || 'NONE'} | Eliminated: ${eliminatedTeams.join(', ') || 'none yet'} | Champion: ${champion || 'none'}`;
-    }).join('\n');
+      const alive = teams.filter(t => gameResults[t] && !gameResults[t].eliminated);
+      const eliminated = teams.filter(t => gameResults[t] && gameResults[t].eliminated);
+      return (i+1) + ". " + s.player + ": " + s.total + "pts | Alive: " + (alive.join(",") || "NONE") + " | Out: " + (eliminated.join(",") || "none");
+    }).join("; ");
 
-    const prompt = `You are the trash talk commissioner for "Kleiner Hoops Pool 2026," a March Madness draft pool among 8 friends. The current tournament stage is: ${currentRoundLabel}.
+    // Route through Google Apps Script via GET with compact params
+    const roastUrl = PROXY_URL
+      + "?action=roast"
+      + "&scores=" + encodeURIComponent(scoresParam)
+      + "&round=" + encodeURIComponent(currentRoundLabel);
 
-Here are the current standings and each player's team status:
-${scoreContext}
+    const response = await fetch(roastUrl, { redirect: "follow", method: "GET" });
+    const rawText = await response.text();
+    console.log("Raw roast response:", rawText.slice(0, 300));
 
-Generate a short, funny, medium-roast bulletin board post for EACH of the 8 players. Rules:
-- Leader gets a humble brag comment or light warning not to get too comfortable
-- Players with zero alive teams get the harshest (but still friendly) roast
-- Middle of the pack gets observation-based commentary about their teams
-- Keep each comment to 1-2 sentences max
-- Reference specific teams by name where possible for authenticity
-- Tone: locker room banter, not mean-spirited. Think ESPN First Take, not a personal attack
-- If it's early and scores are all zero, make jokes about pre-tournament hype
+    if (!rawText || rawText.trim() === "") {
+      throw new Error("Google Script returned empty body");
+    }
 
-Return ONLY a JSON array, no markdown, no explanation:
-[
-  { "player": "PlayerName", "comment": "...", "tone": "good|neutral|bad" },
-  ...
-]
-tone = "good" for leader/top half, "neutral" for middle, "bad" for bottom half / eliminated`;
-
-    // Route through Google Apps Script via POST to avoid URL length limits
-    const response = await fetch(PROXY_URL, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ prompt: prompt })
-    });
-
-    const data = await response.json();
+    const data = JSON.parse(rawText);
 
     // Check for API-level errors
     if (data.error) {
-      throw new Error("API error: " + data.error.message);
+      throw new Error("API error: " + (data.error.message || JSON.stringify(data.error)));
     }
     if (!data.content || data.content.length === 0) {
       throw new Error("Empty response from API (status: " + response.status + ", type: " + (data.type || "unknown") + ")");
