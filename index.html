@@ -658,13 +658,33 @@ tone = "good" for leader/top half, "neutral" for middle, "bad" for bottom half /
     });
 
     const data = await response.json();
+
+    // Check for API-level errors
+    if (data.error) {
+      throw new Error("API error: " + data.error.message);
+    }
+    if (!data.content || data.content.length === 0) {
+      throw new Error("Empty response from API (status: " + response.status + ", type: " + (data.type || "unknown") + ")");
+    }
+
     let jsonText = "";
     for (const block of (data.content || [])) {
       if (block.type === "text") jsonText += block.text;
     }
-    jsonText = jsonText.replace(/```json|```/g, '').trim();
+
+    // Aggressive cleanup — strip any markdown, find the array
+    jsonText = jsonText
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // Try to find a JSON array anywhere in the response
     const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("No JSON array in trash talk response");
+    if (!jsonMatch) {
+      // Log the actual response to help debug
+      console.error("Raw response was:", jsonText.slice(0, 500));
+      throw new Error("No JSON array found. Response started with: " + jsonText.slice(0, 100));
+    }
     const roasts = JSON.parse(jsonMatch[0]);
 
     // Render the trash talk entries
@@ -691,8 +711,8 @@ tone = "good" for leader/top half, "neutral" for middle, "bad" for bottom half /
     document.getElementById('trashRoundLabel').textContent = 'Generated after: ' + currentRoundLabel;
 
   } catch(err) {
-    console.error(err);
-    entriesEl.innerHTML = `<div class="trash-placeholder">Couldn't generate roasts: ${err.message}. Try again after refreshing scores.</div>`;
+    console.error("Roast error:", err);
+    entriesEl.innerHTML = `<div class="trash-placeholder">Roast failed: ${err.message}</div>`;
   } finally {
     btn.classList.remove('loading');
     btn.textContent = '🔥 Roast the Pool';
