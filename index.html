@@ -403,96 +403,145 @@ function initState() {
 // ============================================================
 // SCORE FETCH
 // ============================================================
-async function fetchScores() {
-  const btn = document.getElementById('refreshBtn');
-  const overlay = document.getElementById('loadingOverlay');
-  const errorBanner = document.getElementById('errorBanner');
-  document.getElementById('loadingText').textContent = 'Fetching Scores...';
+// ESPN team name -> our pool team name mapping
+// Google Apps Script proxy — fetches ESPN scores server-side, no CORS issues
+const PROXY_URL = "https://script.google.com/macros/s/AKfycbwagcoE5iHmt7sA3e4DNqnokK5nkwpblu_rBsSnUotmLG81VQcAiSbGr5Pkiks7Riv57Q/exec";
 
-  btn.classList.add('loading');
-  btn.textContent = '↻ Updating...';
-  overlay.classList.add('show');
-  errorBanner.classList.remove('show');
+const TOURNAMENT_DATES = [
+  "20260317", "20260318", // First Four
+  "20260319", "20260320", // R64
+  "20260321", "20260322", // R32
+  "20260327", "20260328", // S16
+  "20260329", "20260330", // E8
+  "20260404",             // F4
+  "20260406"              // Championship
+];
 
-  try {
-    const teamList = Object.values(POOL).flat().join(', ');
-    const prompt = `You are a live NCAA tournament score tracker for the 2026 March Madness tournament. Today is ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}.
-
-Search for the latest 2026 NCAA Men's Basketball Tournament results and return ONLY a JSON object in this exact format, no markdown, no explanation:
-{
-  "updated": "brief description of what round we are in",
-  "status": "one sentence tournament status",
-  "teams": {
-    "TeamName": { "wins": 0, "eliminated": true, "isChampion": false },
-    ...
-  }
+function getDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return y + m + day;
 }
 
-Track these 64 teams: ${teamList}
+async function fetchScores() {
+  const btn = document.getElementById("refreshBtn");
+  const overlay = document.getElementById("loadingOverlay");
+  const errorBanner = document.getElementById("errorBanner");
+  document.getElementById("loadingText").textContent = "Fetching Scores...";
 
-Rules:
-- wins = total tournament wins INCLUDING any First Four wins (0-7). Champion has 6 wins in the main bracket + possibly 1 First Four win = 7 total. Report ALL wins including First Four.
-- NOTE: These First Four teams won a play-in game and their First Four win is included in their total: Howard, Texas, Prairie View A&M, Miami OH. The app will handle subtracting that win from the score automatically.
-- eliminated = true if they have lost any game
-- isChampion = true only for the national champion
-- Teams not yet played: wins=0, eliminated=false
-- Use the exact team name strings I provided as keys`;
+  btn.classList.add("loading");
+  btn.textContent = "↻ Updating...";
+  overlay.classList.add("show");
+  errorBanner.classList.remove("show");
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    let jsonText = "";
-    for (const block of (data.content || [])) {
-      if (block.type === "text") jsonText += block.text;
-    }
-    jsonText = jsonText.replace(/```json|```/g, '').trim();
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON in response");
-    const parsed = JSON.parse(jsonMatch[0]);
-
+  try {
     initState();
-    for (const [rawName, d] of Object.entries(parsed.teams || {})) {
-      const normalized = normalizeName(rawName);
-      for (const team of Object.keys(gameResults)) {
-        if (team.toLowerCase() === normalized.toLowerCase() || team.toLowerCase() === rawName.toLowerCase()) {
-          gameResults[team] = {
-            wins: d.wins || 0,
-            eliminated: d.eliminated || false,
-            isChampion: d.isChampion || false,
-            roundWins: estimateRoundWins(d.wins || 0, d.isChampion || false, FIRST_FOUR_WINNERS.includes(team))
-          };
-          break;
+
+    const todayStr = getDateStr(new Date());
+    const datesToFetch = TOURNAMENT_DATES.filter(d => d <= todayStr);
+
+    // Fetch all relevant dates through our Google Apps Script proxy
+    const fetches = datesToFetch.map(date =>
+      fetch(PROXY_URL + "?date=" + date)
+        .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .catch(e => { console.warn("Failed date " + date + ":", e.message); return null; })
+    );
+
+    const results = await Promise.all(fetches);
+
+    let activeGames = 0;
+
+    for (const data of results) {
+      if (!data || !data.events) continue;
+
+      for (const event of data.events) {
+        const comp = event.competitions && event.competitions[0];
+        if (!comp) continue;
+
+        const status = comp.status && comp.status.type;
+        const isCompleted = status && status.completed === true;
+        const isInProgress = status && status.state === "in";
+
+        if (isInProgress) activeGames++;
+        if (!isCompleted && !isInProgress) continue;
+
+        for (const competitor of (comp.competitors || [])) {
+          const rawName = (competitor.team && (competitor.team.displayName || competitor.team.name)) || "";
+          const shortName = (competitor.team && competitor.team.shortDisplayName) || "";
+
+          // Try to match against our pool teams
+          let poolName = null;
+          for (const team of Object.keys(gameResults)) {
+            if (team.toLowerCase() === rawName.toLowerCase() ||
+                team.toLowerCase() === shortName.toLowerCase() ||
+                team.toLowerCase() === normalizeName(rawName).toLowerCase()) {
+              poolName = team;
+              break;
+            }
+          }
+          if (!poolName) continue;
+
+          const won = competitor.winner === true;
+          const lost = competitor.winner === false && isCompleted;
+
+          if (won) {
+            gameResults[poolName].wins += 1;
+          }
+          if (lost) {
+            gameResults[poolName].eliminated = true;
+          }
         }
       }
     }
 
-    currentRoundLabel = parsed.updated || "In Progress";
+    // Recompute round wins and detect champion for all teams
+    for (const team of Object.keys(gameResults)) {
+      const r = gameResults[team];
+      const isFF = FIRST_FOUR_WINNERS.includes(team);
+      const scorableWins = isFF ? Math.max(0, r.wins - 1) : r.wins;
+      if (scorableWins >= 6) r.isChampion = true;
+      r.roundWins = estimateRoundWins(r.wins, r.isChampion, isFF);
+    }
+
+    // Build status label
+    const totalWins = Object.values(gameResults).reduce((s, r) => s + r.wins, 0);
+    let roundDesc = "2026 NCAA Tournament";
+    if (totalWins === 0)       roundDesc = "2026 NCAA Tournament — Games begin March 19";
+    else if (totalWins <= 4)   roundDesc = "First Four in progress";
+    else if (totalWins <= 8)   roundDesc = "First Four complete";
+    else if (totalWins <= 40)  roundDesc = "Round of 64 in progress";
+    else if (totalWins <= 48)  roundDesc = "Round of 64 complete";
+    else if (totalWins <= 56)  roundDesc = "Round of 32 in progress";
+    else if (totalWins <= 60)  roundDesc = "Round of 32 complete";
+    else if (totalWins <= 64)  roundDesc = "Sweet 16 in progress";
+    else if (totalWins <= 66)  roundDesc = "Elite Eight in progress";
+    else if (totalWins <= 68)  roundDesc = "Final Four in progress";
+    else                       roundDesc = "Championship complete";
+
+    if (activeGames > 0) roundDesc += " \u2022 " + activeGames + " game" + (activeGames > 1 ? "s" : "") + " LIVE \uD83D\uDD34";
+
+    currentRoundLabel = roundDesc;
     lastFetchTime = new Date();
-    document.getElementById('lastUpdated').textContent = 'Updated ' + lastFetchTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('statusText').textContent = '🏀 ' + (parsed.status || '2026 NCAA Tournament Live');
+    document.getElementById("lastUpdated").textContent =
+      "Updated " + lastFetchTime.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+    document.getElementById("statusText").textContent = "\uD83C\uDFC0 " + roundDesc;
     renderAll();
 
-  } catch(err) {
+  } catch (err) {
     console.error(err);
-    const eb = document.getElementById('errorBanner');
-    eb.textContent = '⚠️ Could not fetch live scores: ' + err.message;
-    eb.classList.add('show');
+    const eb = document.getElementById("errorBanner");
+    eb.textContent = "\u26A0\uFE0F Score update failed: " + err.message + ". Try again in a moment.";
+    eb.classList.add("show");
     if (Object.keys(gameResults).length === 0) initState();
     renderAll();
   } finally {
-    btn.classList.remove('loading');
-    btn.textContent = '↻ Refresh Scores';
-    overlay.classList.remove('show');
+    btn.classList.remove("loading");
+    btn.textContent = "\u21BB Refresh Scores";
+    overlay.classList.remove("show");
   }
+}
+
 }
 
 // Teams that came through the First Four — their first win doesn't count for points
