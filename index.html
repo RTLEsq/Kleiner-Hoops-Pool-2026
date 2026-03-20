@@ -443,7 +443,10 @@ async function fetchScores() {
 
     // Fetch all relevant dates through our Google Apps Script proxy
     const fetches = datesToFetch.map(date =>
-      fetch(PROXY_URL + "?date=" + date)
+      fetch(PROXY_URL + "?date=" + date, {
+        redirect: "follow",
+        method: "GET"
+      })
         .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
         .catch(e => { console.warn("Failed date " + date + ":", e.message); return null; })
     );
@@ -540,8 +543,6 @@ async function fetchScores() {
     btn.textContent = "\u21BB Refresh Scores";
     overlay.classList.remove("show");
   }
-}
-
 }
 
 // Teams that came through the First Four — their first win doesn't count for points
