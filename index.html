@@ -405,7 +405,7 @@ function initState() {
 // ============================================================
 // ESPN team name -> our pool team name mapping
 // Google Apps Script proxy — fetches ESPN scores server-side, no CORS issues
-const PROXY_URL = "https://script.google.com/macros/s/AKfycbwagcoE5iHmt7sA3e4DNqnokK5nkwpblu_rBsSnUotmLG81VQcAiSbGr5Pkiks7Riv57Q/exec";
+const PROXY_URL = "https://script.google.com/macros/s/AKfycby94Ej7j3G54GUFqsyU8xqAS0NPabnFh-STHrgBcDN95U0B3Mgqb2PJL3GPOVR-Z6wwjA/exec";
 
 const TOURNAMENT_DATES = [
   "20260317", "20260318", // First Four
@@ -628,8 +628,19 @@ async function generateTrashTalk() {
       + "&scores=" + encodeURIComponent(scoresParam)
       + "&round=" + encodeURIComponent(currentRoundLabel);
 
-    const response = await fetch(roastUrl, { redirect: "follow", method: "GET" });
-    const rawText = await response.text();
+    console.log("Roast URL:", roastUrl);
+    console.log("URL length:", roastUrl.length);
+
+    let response, rawText;
+    try {
+      response = await fetch(roastUrl, { redirect: "follow", method: "GET" });
+      rawText = await response.text();
+      console.log("HTTP status:", response.status);
+      console.log("Raw roast response:", rawText.slice(0, 400));
+    } catch(fetchErr) {
+      console.error("Fetch itself failed:", fetchErr);
+      throw new Error("Network error: " + fetchErr.message + " — check Google Script is deployed as Anyone");
+    }
     console.log("Raw roast response:", rawText.slice(0, 300));
 
     if (!rawText || rawText.trim() === "") {
