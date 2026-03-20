@@ -644,11 +644,13 @@ Return ONLY a JSON array, no markdown, no explanation:
 ]
 tone = "good" for leader/top half, "neutral" for middle, "bad" for bottom half / eliminated`;
 
-    // Route through Google Apps Script which holds the API key securely
-    const response = await fetch(
-      PROXY_URL + "?action=roast&prompt=" + encodeURIComponent(prompt),
-      { redirect: "follow", method: "GET" }
-    );
+    // Route through Google Apps Script via POST to avoid URL length limits
+    const response = await fetch(PROXY_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ prompt: prompt })
+    });
 
     const data = await response.json();
 
